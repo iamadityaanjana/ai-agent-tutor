@@ -1,20 +1,18 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Agent, AgentResponse, ConversationContext } from './types';
 import { MathAgent } from './math-agent';
 import { PhysicsAgent } from './physics-agent';
+import { GeminiService } from '../utils/gemini-service';
 
 export class TutorAgent implements Agent {
   id: string = 'tutor';
   name: string = 'Tutor Agent';
   description: string = 'Main coordinator agent that analyzes queries and delegates to specialist agents';
   
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private geminiService: GeminiService;
   private specialistAgents: Map<string, Agent>;
   
   constructor(apiKey: string) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    this.geminiService = GeminiService.getInstance(apiKey);
     
     // Initialize specialist agents
     this.specialistAgents = new Map<string, Agent>();
@@ -71,12 +69,11 @@ export class TutorAgent implements Agent {
       Category:
     `;
     
-    const result = await this.model.generateContent(prompt);
-    const response = result.response;
-    const category = response.text().trim().toLowerCase();
+    const category = await this.geminiService.generateContent(prompt);
+    const processedCategory = category.trim().toLowerCase();
     
-    if (category === 'math' || category === 'physics') {
-      return category;
+    if (processedCategory === 'math' || processedCategory === 'physics') {
+      return processedCategory;
     }
     
     return 'general';
@@ -103,8 +100,6 @@ export class TutorAgent implements Agent {
       )}`;
     }
     
-    const result = await this.model.generateContent(prompt);
-    const response = result.response;
-    return response.text();
+    return await this.geminiService.generateContent(prompt);
   }
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect } from 'react';
 import { Message } from '../../lib/agents/types';
 import { ChatMessage } from './chat-message';

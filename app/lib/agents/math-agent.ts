@@ -1,20 +1,18 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Agent, AgentResponse, ConversationContext } from './types';
 import { Calculator } from '../tools/calculator';
+import { GeminiService } from '../utils/gemini-service';
 
 export class MathAgent implements Agent {
   id: string = 'math';
   name: string = 'Math Agent';
   description: string = 'Specialist agent for mathematics questions';
   
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private geminiService: GeminiService;
   private calculator: Calculator;
   
   constructor(apiKey: string) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    this.calculator = new Calculator();
+    this.geminiService = GeminiService.getInstance(apiKey);
+    this.calculator = new Calculator(apiKey);
   }
   
   /**
@@ -62,9 +60,8 @@ export class MathAgent implements Agent {
       Question: ${question}
     `;
     
-    const result = await this.model.generateContent(prompt);
-    const response = result.response.text().trim().toUpperCase();
-    return response === 'YES';
+    const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
+    return response.trim().toUpperCase() === 'YES';
   }
   
   /**
@@ -100,8 +97,7 @@ export class MathAgent implements Agent {
     
     prompt += `\n\nProvide a clear explanation. If appropriate, include a step-by-step solution.
       Format any mathematical expressions properly. Be educational and helpful.`;
-    
-    const result = await this.model.generateContent(prompt);
-    return result.response.text();
+      
+    return await this.geminiService.generateContent(prompt);
   }
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { Message } from '../../lib/agents/types';
 import { cn } from '../../lib/utils/cn';
 import { CalculatorIcon, BookOpenIcon, BrainIcon } from 'lucide-react';

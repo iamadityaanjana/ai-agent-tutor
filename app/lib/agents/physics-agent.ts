@@ -1,20 +1,18 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Agent, AgentResponse, ConversationContext } from './types';
 import { FormulaLookup } from '../tools/formula-lookup';
+import { GeminiService } from '../utils/gemini-service';
 
 export class PhysicsAgent implements Agent {
   id: string = 'physics';
   name: string = 'Physics Agent';
   description: string = 'Specialist agent for physics questions and problems';
   
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private geminiService: GeminiService;
   private formulaLookup: FormulaLookup;
   
   constructor(apiKey: string) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    this.formulaLookup = new FormulaLookup();
+    this.geminiService = GeminiService.getInstance(apiKey);
+    this.formulaLookup = new FormulaLookup(apiKey);
   }
   
   /**
@@ -64,9 +62,8 @@ export class PhysicsAgent implements Agent {
       Question: ${question}
     `;
     
-    const result = await this.model.generateContent(prompt);
-    const response = result.response.text().trim().toUpperCase();
-    return response === 'YES';
+    const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
+    return response.trim().toUpperCase() === 'YES';
   }
   
   /**
@@ -104,7 +101,6 @@ export class PhysicsAgent implements Agent {
       explain the variables, and if possible, show how to approach solving this problem.
       Format any mathematical or physics expressions properly. Be educational and helpful.`;
     
-    const result = await this.model.generateContent(prompt);
-    return result.response.text();
+    return await this.geminiService.generateContent(prompt);
   }
 }

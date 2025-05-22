@@ -1,12 +1,19 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GeminiService } from '../utils/gemini-service';
 
 /**
  * A tool that performs calculations based on mathematical expressions
  */
 export class Calculator {
   private mathParser: Function;
+  private apiKey: string;
+  private geminiService: GeminiService | null = null;
   
-  constructor() {
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey || '';
+    if (apiKey) {
+      this.geminiService = GeminiService.getInstance(apiKey);
+    }
+    
     // Simple math parser for basic calculations
     this.mathParser = new Function('expression', `
       try {
@@ -58,9 +65,10 @@ export class Calculator {
    */
   private async extractMathExpression(text: string): Promise<string | null> {
     try {
-      // We'll use environment variables in a real implementation
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'YOUR_API_KEY');
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      if (!this.geminiService) {
+        console.error("GeminiService not initialized in Calculator");
+        return null;
+      }
       
       const prompt = `
         Extract the mathematical expression from the following text for calculation.
@@ -71,15 +79,14 @@ export class Calculator {
         Text: ${text}
       `;
       
-      const result = await model.generateContent(prompt);
-      const response = result.response.text().trim();
+      const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
       
       // Return null if no expression found
-      if (response === 'NONE' || !response) {
+      if (response.trim() === 'NONE' || !response) {
         return null;
       }
       
-      return response;
+      return response.trim();
     } catch (error) {
       console.error("Error extracting math expression:", error);
       return null;

@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from '../../components/ui/button';
 import { useState, FormEvent } from 'react';
 import { SendIcon } from 'lucide-react';

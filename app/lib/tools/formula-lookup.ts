@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GeminiService } from '../utils/gemini-service';
 
 /**
  * Formula data structure
@@ -17,8 +17,12 @@ interface Formula {
  */
 export class FormulaLookup {
   private formulaDatabase: Formula[];
+  private geminiService: GeminiService | null = null;
   
-  constructor() {
+  constructor(apiKey?: string) {
+    if (apiKey) {
+      this.geminiService = GeminiService.getInstance(apiKey);
+    }
     // Initialize with some common physics formulas
     this.formulaDatabase = [
       {
@@ -129,9 +133,10 @@ export class FormulaLookup {
    */
   private async extractPhysicsConcept(query: string): Promise<string | null> {
     try {
-      // We'll use environment variables in a real implementation
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'YOUR_API_KEY');
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      if (!this.geminiService) {
+        console.error("GeminiService not initialized in FormulaLookup");
+        return null;
+      }
       
       const prompt = `
         Extract the main physics concept, law, or formula that's being asked about in this question.
@@ -142,14 +147,13 @@ export class FormulaLookup {
         Question: ${query}
       `;
       
-      const result = await model.generateContent(prompt);
-      const response = result.response.text().trim();
+      const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
       
-      if (response === 'NONE' || !response) {
+      if (response.trim() === 'NONE' || !response) {
         return null;
       }
       
-      return response;
+      return response.trim();
     } catch (error) {
       console.error("Error extracting physics concept:", error);
       return null;
@@ -184,8 +188,10 @@ export class FormulaLookup {
    */
   private async generateFormulaWithAI(concept: string): Promise<Formula | null> {
     try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'YOUR_API_KEY');
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      if (!this.geminiService) {
+        console.error("GeminiService not initialized in FormulaLookup");
+        return null;
+      }
       
       const prompt = `
         Generate a detailed physics formula entry for the concept: "${concept}"
@@ -201,13 +207,8 @@ export class FormulaLookup {
         Format the JSON properly. If this isn't a recognizable physics concept, return null.
       `;
       
-      const result = await model.generateContent(prompt);
-      const response = result.response.text().trim();
-      
       try {
-        // Parse the JSON response
-        const formulaData = JSON.parse(response);
-        return formulaData;
+        return await this.geminiService.generateStructuredOutput<Formula>(prompt);
       } catch (e) {
         console.error("Error parsing formula JSON:", e);
         return null;
