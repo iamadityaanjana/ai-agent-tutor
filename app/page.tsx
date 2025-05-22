@@ -3,6 +3,7 @@ import { Container } from '../app/components/ui/container';
 import { Button } from '../app/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
+import TestComponent from './components/test';
 
 export default function Home() {
   return (
