@@ -196,8 +196,8 @@ export class FormulaLookup {
       const prompt = `
         Generate a valid JSON structure for the physics formula related to "${concept}".
         
-        IMPORTANT: Your response must be a single valid JSON object without any markdown formatting.
-        Do NOT use code blocks, backticks, or any markdown syntax. Just return the raw JSON.
+        CRITICAL: Your response MUST be a single valid JSON object WITHOUT any markdown formatting.
+        DO NOT use code blocks, backticks, or any markdown syntax. ONLY return the raw JSON.
         
         The JSON should strictly follow this structure:
         {
@@ -216,18 +216,41 @@ export class FormulaLookup {
       `;
       
       try {
-        const result = await this.geminiService.generateStructuredOutput<Formula | {error: string}>(prompt);
+        // Specify to retry once if parsing fails
+        const result = await this.geminiService.generateStructuredOutput<Formula | {error: string}>(prompt, "gemini-2.0-flash", 1);
         return result && 'error' in result ? null : result as Formula;
       } catch (e) {
         console.error("Error parsing formula JSON:", e);
         
-        // Fallback: create a simple formula object with the error information
-        return {
-          name: concept,
-          formula: "N/A",
-          variables: {},
-          description: `Could not generate formula data for "${concept}". Please try a different physics concept.`
-        };
+        // Enhanced fallback: attempt direct content generation as a last resort
+        try {
+          const fallbackPrompt = `
+            I need information about the physics formula related to "${concept}".
+            Please provide the following information in plain text format (NOT JSON):
+            
+            1. The name of the formula
+            2. The formula itself (mathematical expression)
+            3. A brief description of what it's used for
+          `;
+          
+          const textResponse = await this.geminiService.generateContent(fallbackPrompt);
+          
+          // Create a simple formula object from the text response
+          return {
+            name: concept,
+            formula: textResponse.includes('\n') ? textResponse.split('\n')[1]?.trim() || "N/A" : "N/A",
+            variables: {},
+            description: textResponse
+          };
+        } catch (fallbackError) {
+          // Last resort fallback
+          return {
+            name: concept,
+            formula: "N/A",
+            variables: {},
+            description: `Could not generate formula data for "${concept}". Please try a different physics concept.`
+          };
+        }
       }
     } catch (error) {
       console.error("Error generating formula with AI:", error);

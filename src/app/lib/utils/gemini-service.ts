@@ -65,7 +65,8 @@ export class GeminiService {
    */
   public async generateStructuredOutput<T>(
     prompt: string,
-    modelName: string = "gemini-2.0-flash"
+    modelName: string = "gemini-2.0-flash",
+    retries: number = 1
   ): Promise<T> {
     try {
       const model = this.getModel(modelName);
@@ -75,7 +76,22 @@ export class GeminiService {
       // Clean the response to handle markdown code blocks and other artifacts
       text = this.cleanJsonResponse(text);
       
-      return JSON.parse(text) as T;
+      try {
+        return JSON.parse(text) as T;
+      } catch (parseError) {
+        // If parsing fails and we have retries left, try again with a more explicit JSON request
+        if (retries > 0) {
+          const enhancedPrompt = `${prompt}
+          
+IMPORTANT: You MUST respond with a valid JSON object WITHOUT ANY markdown formatting or code blocks.
+DO NOT include \`\`\` or any other text before or after the JSON object.
+The response should be a plain JSON object that can be directly parsed.`;
+          
+          console.warn("JSON parsing failed, retrying with enhanced prompt:", parseError);
+          return this.generateStructuredOutput<T>(enhancedPrompt, modelName, retries - 1);
+        }
+        throw parseError;
+      }
     } catch (error) {
       console.error('Error generating structured output:', error);
       throw error;
@@ -86,9 +102,15 @@ export class GeminiService {
    * Clean a JSON response string by removing markdown code blocks and other non-JSON artifacts
    */
   private cleanJsonResponse(text: string): string {
-    // Remove markdown JSON code block syntax
-    text = text.replace(/```(json|javascript)?\s*/g, '');
-    text = text.replace(/```\s*$/g, '');
+    // First try to find JSON object/array enclosed in markdown code blocks
+    const markdownJsonMatch = text.match(/```(?:json|javascript)?\s*([\s\S]*?)\s*```/);
+    if (markdownJsonMatch) {
+      text = markdownJsonMatch[1].trim();
+    } else {
+      // If not in code blocks, remove any markdown code block syntax that might be partial
+      text = text.replace(/```(?:json|javascript)?\s*/g, '');
+      text = text.replace(/```\s*$/g, '');
+    }
     
     // Remove any leading/trailing whitespace
     text = text.trim();
@@ -99,8 +121,8 @@ export class GeminiService {
     // Check if text starts with { or [ to ensure it's a JSON object/array
     if (!text.startsWith('{') && !text.startsWith('[')) {
       // Try to find a JSON object/array in the text
-      const jsonObjectMatch = text.match(/({[\s\S]*})/);
-      const jsonArrayMatch = text.match(/(\[[\s\S]*\])/);
+      const jsonObjectMatch = text.match(/({[\s\S]*?})/);
+      const jsonArrayMatch = text.match(/(\[[\s\S]*?\])/);
       
       if (jsonObjectMatch) {
         text = jsonObjectMatch[1];
