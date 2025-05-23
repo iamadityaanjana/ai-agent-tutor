@@ -37,7 +37,13 @@ export async function POST(req: NextRequest) {
     // Process the message
     const response = await tutorAgent.process(message, context);
     
-    return NextResponse.json({ response });
+    // Ensure toolResults are included in the response
+    return NextResponse.json({
+      response: {
+        ...response,
+        toolResults: response.toolResults // Ensure toolResults are passed to the client
+      }
+    });
   } catch (error) {
     console.error('Error processing message:', error);
     

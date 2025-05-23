@@ -72,6 +72,7 @@ export default function ChatPage() {
         sender: response.agentId as any,
         timestamp: new Date(),
         toolsUsed: response.toolsUsed,
+        toolResults: response.toolResults,
       };
 
       // Replace loading message with actual response

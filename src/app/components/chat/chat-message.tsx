@@ -139,6 +139,27 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
                     </code>
                   );
                 },
+                // Simplified math rendering to avoid errors
+                math: ({value}: any) => {
+                  if (!value || typeof value !== 'string') {
+                    return <span className="text-red-500">Invalid math expression</span>;
+                  }
+                  
+                  // Simply pass the value to KaTeX without additional processing
+                  return (
+                    <div className="py-2 flex justify-center overflow-x-auto">
+                      <span>{`$$${value}$$`}</span>
+                    </div>
+                  );
+                },
+                inlineMath: ({value}: any) => {
+                  if (!value || typeof value !== 'string') {
+                    return <span className="text-red-500">Invalid math expression</span>;
+                  }
+                  
+                  // Simply pass the value to KaTeX without additional processing
+                  return <span>{`$${value}$`}</span>;
+                }
               }}
             >
               {message.content}
@@ -147,7 +168,7 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
         </div>
         
         {message.toolsUsed && message.toolsUsed.length > 0 && (
-          <ToolsDisplay tools={message.toolsUsed} />
+          <ToolsDisplay tools={message.toolsUsed} toolResults={message.toolResults} />
         )}
       </div>
       {isUser && avatar}

@@ -23,6 +23,7 @@ export class PhysicsAgent implements Agent {
       // Check if the question is related to a physics formula
       let formulaResult = null;
       const toolsUsed = [];
+      const toolResults: Record<string, any> = {};
       let formulaError: Error | null = null;
       
       try {
@@ -33,6 +34,8 @@ export class PhysicsAgent implements Agent {
           formulaResult = await this.formulaLookup.lookupFormula(input);
           if (formulaResult) {
             toolsUsed.push('formulaLookup');
+            // Store the formula result to be displayed in the UI
+            toolResults.formulaLookup = formulaResult;
           }
         }
       } catch (error) {
@@ -48,6 +51,7 @@ export class PhysicsAgent implements Agent {
         agentId: this.id,
         content: response,
         toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
+        toolResults: Object.keys(toolResults).length > 0 ? toolResults : undefined,
         confidenceScore: 0.9
       };
     } catch (error) {

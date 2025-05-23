@@ -37,6 +37,7 @@ export class TutorAgent implements Agent {
             agentId: this.id,
             content: this.formatResponse(response.content),
             toolsUsed: response.toolsUsed,
+            toolResults: response.toolResults, // Pass along tool results
             confidenceScore: response.confidenceScore
           };
         } catch (specialistError) {
@@ -116,6 +117,34 @@ export class TutorAgent implements Agent {
   private processMathExpressions(content: string): string {
     let result = content;
     
+    // Fix incorrect formatting patterns first
+    
+    // Fix hashtags that break markdown headers (##Approach -> ## Approach)
+    result = result.replace(/(#{1,6})([A-Za-z])/g, '$1 $2');
+    
+    // Fix the specific issue seen in the screenshot (2 + 2 + 2.## Approach -> 2 + 2 + 2.\n\n## Approach)
+    result = result.replace(/(\d+)\.#{2,6}\s+([A-Z])/g, '$1.\n\n## $2');
+    
+    // Fix red text markup that's corrupting math expressions
+    result = result.replace(/\*\*(.+?)\*\*/g, '**$1**');  // Fix bold markers
+    result = result.replace(/\$([^$]*)\$/g, (match) => {
+      // Remove color formatting within math expressions
+      return match.replace(/\*\*([^*]+)\*\*/g, '$1');
+    });
+    
+    // Fix the issue with red text in formulas (visible in screenshot)
+    result = result.replace(/(\d+\s*\+\s*\$\d+\s*=\s*\d+\$\s*\$\d+)\./g, (match: string, group: string) => group);
+    
+    // Fix the double dollar sign issue seen in the example
+    result = result.replace(/(\d+)\s*\$\$(\d+)/g, (match: string, g1: string, g2: string) => `${g1} $$\n${g2}`);
+    
+    // Fix split up math expressions like 4 + 2 = 6
+    result = result.replace(/(\d+\s*[\+\-\*\/]\s*\d+\s*=\s*\d+)/g, (match: string) => `$${match}$$`);
+    
+    // Fix inline math expressions with equals signs
+    // This helps with expressions like 2 + $2 = 4$ $2 becoming properly formatted as 2 + $2 = 4$
+    result = result.replace(/(\$[^$]*?=.[^$]*?\$)\s*\$(\d)/g, '$1 $2');
+    
     // Look for obvious math expressions not in LaTeX delimiters
     const mathRegexes = [
       // Basic algebra with equals sign
@@ -138,7 +167,9 @@ export class TutorAgent implements Agent {
       let processed = formula.replace(/(\w+)\^(\w+)/g, '$1^{$2}');
       // Fix common LaTeX syntax issues
       processed = processed.replace(/\\frac\s*(\w+)\s*(\w+)/g, '\\frac{$1}{$2}');
-      return `$$${processed}$$`;
+      
+      // Ensure block math has blank lines before and after
+      return `\n\n$$${processed}$$\n\n`;
     });
     
     // Handle inline LaTeX delimiters
@@ -232,31 +263,29 @@ export class TutorAgent implements Agent {
          - Use **bold** for emphasis or important terms
          - Use *italics* for secondary emphasis
       
-      2. MATH FORMATTING:
-         - For inline math expressions, use single dollar signs: $x^2 + y^2 = z^2$
-         - For block/display math, use double dollar signs with blank lines before and after:
+      2. MATH FORMATTING - EXTREMELY IMPORTANT:
+         - For inline math expressions, use single dollar signs: $expression$
+         - For block/display math, use THIS EXACT FORMAT with blank lines:
            
            $$
-           F = G \\frac{m_1 m_2}{r^2}
+           expression
            $$
          
-         - Always use proper LaTeX notation: \\frac{numerator}{denominator} instead of a/b
-         - Always wrap exponents in curly braces: x^{2} not x^2
+         - For fractions use \\frac{numerator}{denominator}
+         - For exponents always use curly braces: x^{2} not x^2
+         - For subscripts always use curly braces: x_{i} not x_i
+         - Use \\times for multiplication, not *
+         - Use simple LaTeX - avoid custom commands or complex formatting
       
       3. CODE FORMATTING:
-         - For code blocks, use triple backticks with the language name, like:
-           \`\`\`python
-           def hello_world():
-               print("Hello, world!")
-           \`\`\`
-         - For inline code, use single backticks: \`variable_name\`
-         - Include proper indentation in code blocks
+         - Use triple backticks with the language name for code blocks
+         - Use single backticks for inline code
       
-      4. CONTENT ORGANIZATION:
-         - Start with a brief introduction
-         - Break down complex concepts into smaller, manageable sections
-         - Provide clear examples
-         - End with a concise summary or conclusion
+      4. AVOID THESE COMMON ERRORS:
+         - Do not use ##Heading (incorrect) - use ## Heading (correct)
+         - Do not place headings immediately after content without a blank line
+         - Do not mix markdown formatting inside LaTeX expressions
+         - Do not use red text or other fancy formatting that might break rendering
       
       Question: ${question}
     `;

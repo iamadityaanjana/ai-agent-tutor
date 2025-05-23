@@ -15,6 +15,7 @@ export interface AgentResponse {
   agentId: string;
   content: string;
   toolsUsed?: string[];
+  toolResults?: Record<string, any>; // Results from tools to be displayed in UI
   confidenceScore?: number;
 }
 
@@ -40,5 +41,6 @@ export interface Message {
   sender: 'user' | 'agent' | 'system' | string; // Allow for specific agent IDs
   timestamp: Date;
   toolsUsed?: string[];
+  toolResults?: Record<string, any>; // Results from tools to display in UI
   isLoading?: boolean; // Added for loading state
 }
