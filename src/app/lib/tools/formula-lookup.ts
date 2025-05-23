@@ -194,24 +194,40 @@ export class FormulaLookup {
       }
       
       const prompt = `
-        Generate a detailed physics formula entry for the concept: "${concept}"
+        Generate a valid JSON structure for the physics formula related to "${concept}".
         
-        Return the result as a JSON object with the following fields:
-        - name: The name of the formula or law
-        - formula: The mathematical expression
-        - variables: An object with variable names as keys and their descriptions as values
-        - units: The units of measurement (if applicable)
-        - field: The branch of physics this formula belongs to
-        - description: A brief explanation of what the formula describes
+        IMPORTANT: Your response must be a single valid JSON object without any markdown formatting.
+        Do NOT use code blocks, backticks, or any markdown syntax. Just return the raw JSON.
         
-        Format the JSON properly. If this isn't a recognizable physics concept, return null.
+        The JSON should strictly follow this structure:
+        {
+          "name": "The name of the formula or concept",
+          "formula": "The mathematical expression as a string",
+          "variables": {
+            "variable1": "description of variable1",
+            "variable2": "description of variable2"
+          },
+          "units": "The units of measurement (if applicable)",
+          "field": "The branch of physics this formula belongs to",
+          "description": "A brief explanation of what the formula describes"
+        }
+        
+        If this isn't a recognizable physics concept, return { "error": "Not a recognized physics concept" }.
       `;
       
       try {
-        return await this.geminiService.generateStructuredOutput<Formula>(prompt);
+        const result = await this.geminiService.generateStructuredOutput<Formula | {error: string}>(prompt);
+        return result && 'error' in result ? null : result as Formula;
       } catch (e) {
         console.error("Error parsing formula JSON:", e);
-        return null;
+        
+        // Fallback: create a simple formula object with the error information
+        return {
+          name: concept,
+          formula: "N/A",
+          variables: {},
+          description: `Could not generate formula data for "${concept}". Please try a different physics concept.`
+        };
       }
     } catch (error) {
       console.error("Error generating formula with AI:", error);

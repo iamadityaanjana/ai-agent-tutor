@@ -21,16 +21,22 @@ export class PhysicsAgent implements Agent {
   async process(input: string, context?: ConversationContext): Promise<AgentResponse> {
     try {
       // Check if the question is related to a physics formula
-      const needsFormula = await this.needsFormula(input);
       let formulaResult = null;
       const toolsUsed = [];
       
-      // If a formula is needed, use the formula lookup tool
-      if (needsFormula) {
-        formulaResult = await this.formulaLookup.lookupFormula(input);
-        if (formulaResult) {
-          toolsUsed.push('formulaLookup');
+      try {
+        const needsFormula = await this.needsFormula(input);
+        
+        // If a formula is needed, use the formula lookup tool
+        if (needsFormula) {
+          formulaResult = await this.formulaLookup.lookupFormula(input);
+          if (formulaResult) {
+            toolsUsed.push('formulaLookup');
+          }
         }
+      } catch (formulaError) {
+        console.error("Error getting formula information:", formulaError);
+        // Continue without formula information if there's an error
       }
       
       // Generate a detailed physics explanation
@@ -55,15 +61,29 @@ export class PhysicsAgent implements Agent {
    * Determine if the question needs a physics formula lookup
    */
   private async needsFormula(question: string): Promise<boolean> {
-    const prompt = `
-      Does the following physics question require a physics formula or law? 
-      Answer with only YES or NO.
+    try {
+      const prompt = `
+        Does the following physics question require a physics formula or law? 
+        Answer with only YES or NO, nothing else.
+        
+        Question: ${question}
+      `;
       
-      Question: ${question}
-    `;
-    
-    const response = await this.geminiService.generateContent(prompt, "gemini-2.0-flash");
-    return response.trim().toUpperCase() === 'YES';
+      const response = await this.geminiService.generateContent(prompt, "gemini-2.0-flash");
+      const cleanResponse = response.trim().toUpperCase();
+      
+      // Check if the response contains YES
+      if (cleanResponse.includes('YES')) {
+        return true;
+      }
+      
+      // Only return false for clear NO responses, default to true in ambiguous cases
+      return cleanResponse !== 'NO';
+    } catch (error) {
+      console.error("Error determining if formula is needed:", error);
+      // Default to true if there's an error, to err on the side of providing formula information
+      return true;
+    }
   }
   
   /**
@@ -78,7 +98,17 @@ export class PhysicsAgent implements Agent {
     `;
     
     if (formula) {
-      prompt += `\n\nRelevant formula information: ${JSON.stringify(formula)}`;
+      try {
+        // Safely add formula information if available
+        const formulaInfo = typeof formula === 'string' 
+          ? formula 
+          : JSON.stringify(formula, null, 2);
+        
+        prompt += `\n\nRelevant formula information: ${formulaInfo}`;
+      } catch (e) {
+        console.warn("Could not stringify formula information:", e);
+        // Continue without formula information
+      }
     }
     
     if (context && context.history.length > 0) {

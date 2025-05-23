@@ -70,12 +70,46 @@ export class GeminiService {
     try {
       const model = this.getModel(modelName);
       const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      let text = result.response.text();
+      
+      // Clean the response to handle markdown code blocks and other artifacts
+      text = this.cleanJsonResponse(text);
+      
       return JSON.parse(text) as T;
     } catch (error) {
       console.error('Error generating structured output:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Clean a JSON response string by removing markdown code blocks and other non-JSON artifacts
+   */
+  private cleanJsonResponse(text: string): string {
+    // Remove markdown JSON code block syntax
+    text = text.replace(/```(json|javascript)?\s*/g, '');
+    text = text.replace(/```\s*$/g, '');
+    
+    // Remove any leading/trailing whitespace
+    text = text.trim();
+    
+    // Handle any potential trailing commas in objects/arrays which are invalid in JSON
+    text = text.replace(/,\s*([\]}])/g, '$1');
+    
+    // Check if text starts with { or [ to ensure it's a JSON object/array
+    if (!text.startsWith('{') && !text.startsWith('[')) {
+      // Try to find a JSON object/array in the text
+      const jsonObjectMatch = text.match(/({[\s\S]*})/);
+      const jsonArrayMatch = text.match(/(\[[\s\S]*\])/);
+      
+      if (jsonObjectMatch) {
+        text = jsonObjectMatch[1];
+      } else if (jsonArrayMatch) {
+        text = jsonArrayMatch[1];
+      }
+    }
+    
+    return text;
   }
 
   /**
