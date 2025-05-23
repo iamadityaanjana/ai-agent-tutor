@@ -108,8 +108,33 @@ export class MathAgent implements Agent {
       }
     }
     
-    prompt += `\n\nProvide a clear explanation. If appropriate, include a step-by-step solution.
-      Format any mathematical expressions properly. Be educational and helpful.`;
+    prompt += `\n\nProvide a clear explanation with a step-by-step solution.
+    
+    FORMAT YOUR RESPONSE CAREFULLY FOLLOWING THESE RULES:
+    
+    1. MATH NOTATION:
+       - For all mathematical expressions, use LaTeX formatting
+       - For inline math, use $...$ (e.g., $x^{2} + y^{2} = z^{2}$)
+       - For block/display math, use $$...$$, with blank lines before and after
+       - Always use proper LaTeX notation:
+         * Use \\frac{numerator}{denominator} for fractions
+         * Use ^{} for exponents: $x^{2}$ not $x^2$
+         * Use \\sqrt{} for square roots
+         * Use \\cdot or \\times for multiplication
+    
+    2. ORGANIZATION:
+       - Start with a brief explanation of the approach
+       - Number each step in the solution process
+       - After the solution, add a brief explanation of the result
+       - If relevant, mention alternative approaches
+    
+    3. FORMATTING:
+       - Use markdown headings (## and ###) with spaces after the #
+       - Use bullet points for lists
+       - Use bold for important concepts
+       - Include appropriate whitespace between sections
+    
+    Be educational and helpful, explaining concepts clearly.`;
       
     return await this.geminiService.generateContent(prompt);
   }

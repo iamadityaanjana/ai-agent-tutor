@@ -97,9 +97,34 @@ export class PhysicsAgent implements Agent {
       }
     }
     
-    prompt += `\n\nProvide a clear explanation. If appropriate, include the relevant formulas,
-      explain the variables, and if possible, show how to approach solving this problem.
-      Format any mathematical or physics expressions properly. Be educational and helpful.`;
+    prompt += `\n\nProvide a clear explanation of the physics concepts involved and a step-by-step approach to solving this problem.
+    
+    FORMAT YOUR RESPONSE CAREFULLY FOLLOWING THESE RULES:
+    
+    1. ORGANIZATION:
+       - Begin with a clear explanation of the relevant physics concepts
+       - List and explain all relevant formulas with their variables
+       - Outline a step-by-step approach to solving the problem
+       - If calculable, show the numerical solution
+       - End with the physical interpretation of the result
+    
+    2. MATH AND PHYSICS NOTATION:
+       - For all mathematical expressions, use LaTeX formatting
+       - Use $...$ for inline formulas (e.g., $F = ma$)
+       - Use $$...$$ for display formulas, with blank lines before and after
+       - For vectors, use \\vec{F} notation
+       - For units, write them as: $\\text{m/s}^2$ or $\\text{kg} \\cdot \\text{m/s}^2$
+       - Use proper subscripts and superscripts: $v_{initial}$ not $v_initial$
+    
+    3. FORMATTING:
+       - Use ## for main section headings with a space after ##
+       - Use ### for subsections with a space after ###
+       - Use bullet points for lists of concepts
+       - Use numbered steps for solution procedures
+       - Use bold for important concepts and results
+       - Include illustrative diagrams if appropriate (describe them textually)
+    
+    Be educational and helpful, ensuring the physics principles are clearly understood.`;
     
     return await this.geminiService.generateContent(prompt);
   }

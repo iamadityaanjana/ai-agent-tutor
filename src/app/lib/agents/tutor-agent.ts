@@ -78,6 +78,16 @@ export class TutorAgent implements Agent {
     // Ensure paragraphs are properly separated
     formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
     
+    // Fix additional spacing issues
+    formattedContent = formattedContent.replace(/\n\s*\n/g, '\n\n'); // Normalize multiple whitespace lines
+    formattedContent = formattedContent.replace(/^\s+|\s+$/gm, ''); // Trim whitespace at start and end of lines
+    
+    // Ensure proper whitespace around block elements
+    formattedContent = formattedContent.replace(/([^\n])\n(#{1,6})/g, '$1\n\n$2'); // Add space before headings
+    formattedContent = formattedContent.replace(/(#{1,6}[^\n]+)\n([^\n])/g, '$1\n\n$2'); // Add space after headings
+    formattedContent = formattedContent.replace(/([^\n])\n(```)/g, '$1\n\n$2'); // Add space before code blocks
+    formattedContent = formattedContent.replace(/(```)\n([^\n])/g, '$1\n\n$2'); // Add space after code blocks
+    
     // Ensure code blocks are properly formatted
     formattedContent = this.processCodeBlocks(formattedContent);
     
@@ -104,13 +114,25 @@ export class TutorAgent implements Agent {
       result = result.replace(regex, '$1$$$2$$$3');
     });
     
-    // Convert x^y notation to x^{y} format in LaTeX blocks
-    result = result.replace(/\$\$(.*?)\$\$/gs, (match) => {
-      return match.replace(/(\w+)\^(\w+)/g, '$1^{$2}');
+    // Process LaTeX block patterns more safely
+    // Handle block LaTeX delimiters
+    const blockLaTexPattern = /\$\$([\s\S]*?)\$\$/g;
+    result = result.replace(blockLaTexPattern, (match, formula) => {
+      // Fix exponent notation
+      let processed = formula.replace(/(\w+)\^(\w+)/g, '$1^{$2}');
+      // Fix common LaTeX syntax issues
+      processed = processed.replace(/\\frac\s*(\w+)\s*(\w+)/g, '\\frac{$1}{$2}');
+      return `$$${processed}$$`;
     });
     
-    result = result.replace(/\$(.*?)\$/g, (match) => {
-      return match.replace(/(\w+)\^(\w+)/g, '$1^{$2}');
+    // Handle inline LaTeX delimiters
+    const inlineLaTexPattern = /\$([^$]+)\$/g;
+    result = result.replace(inlineLaTexPattern, (match, formula) => {
+      // Fix exponent notation
+      let processed = formula.replace(/(\w+)\^(\w+)/g, '$1^{$2}');
+      // Fix common LaTeX syntax issues
+      processed = processed.replace(/\\frac\s*(\w+)\s*(\w+)/g, '\\frac{$1}{$2}');
+      return `$${processed}$`;
     });
     
     return result;
@@ -120,8 +142,37 @@ export class TutorAgent implements Agent {
    * Ensure code blocks are properly formatted
    */
   private processCodeBlocks(content: string): string {
+    let result = content;
+    
     // Fix code blocks without language specification
-    return content.replace(/```\s*\n/g, '```text\n');
+    result = result.replace(/```\s*\n/g, '```text\n');
+    
+    // Find code blocks and ensure proper formatting
+    const codeBlockPattern = /```([\w]*)([\s\S]*?)```/g;
+    result = result.replace(codeBlockPattern, (match, language, code) => {
+      // Ensure there's a line break after the opening ```
+      if (!code.startsWith('\n')) {
+        code = '\n' + code;
+      }
+      
+      // Ensure there's a line break before the closing ```
+      if (!code.endsWith('\n')) {
+        code = code + '\n';
+      }
+      
+      // Normalize indentation within code blocks
+      code = code.replace(/^\s+/gm, match => {
+        // Convert tabs to spaces and ensure consistent indentation
+        return match.replace(/\t/g, '  ');
+      });
+      
+      // Use a default language if none specified
+      const langSpecifier = language.trim() || 'text';
+      
+      return '```' + langSpecifier + code + '```';
+    });
+    
+    return result;
   }
   
   /**
@@ -153,14 +204,44 @@ export class TutorAgent implements Agent {
   private async generateGeneralResponse(question: string, context?: ConversationContext): Promise<string> {
     let prompt = `
       You are a helpful tutor assistant. Please respond to the following question in a helpful, educational way.
-      Use proper Markdown formatting: 
-      - Use headings (##) for sections
-      - Use bullet or numbered lists for steps
-      - Use bold/italic for emphasis
-      - For mathematical formulas, use LaTeX inside $$...$$ for block math or $...$ for inline math.
-      - Use code blocks only for code, not for math.
-      If you don't know the answer, say so honestly.
-
+      
+      FORMAT YOUR RESPONSE CAREFULLY FOLLOWING THESE RULES:
+      
+      1. MARKDOWN FORMATTING:
+         - Use ## for main section headings (with a space after ##)
+         - Use ### for subsection headings (with a space after ###)
+         - Leave a blank line before and after headings
+         - Use bullet points with proper spacing: - Item (with a space after -)
+         - Use numbered lists with proper spacing: 1. Step (with a space after the number)
+         - Use **bold** for emphasis or important terms
+         - Use *italics* for secondary emphasis
+      
+      2. MATH FORMATTING:
+         - For inline math expressions, use single dollar signs: $x^2 + y^2 = z^2$
+         - For block/display math, use double dollar signs with blank lines before and after:
+           
+           $$
+           F = G \\frac{m_1 m_2}{r^2}
+           $$
+         
+         - Always use proper LaTeX notation: \\frac{numerator}{denominator} instead of a/b
+         - Always wrap exponents in curly braces: x^{2} not x^2
+      
+      3. CODE FORMATTING:
+         - For code blocks, use triple backticks with the language name, like:
+           \`\`\`python
+           def hello_world():
+               print("Hello, world!")
+           \`\`\`
+         - For inline code, use single backticks: \`variable_name\`
+         - Include proper indentation in code blocks
+      
+      4. CONTENT ORGANIZATION:
+         - Start with a brief introduction
+         - Break down complex concepts into smaller, manageable sections
+         - Provide clear examples
+         - End with a concise summary or conclusion
+      
       Question: ${question}
     `;
     
