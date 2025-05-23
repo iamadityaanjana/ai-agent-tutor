@@ -177,7 +177,7 @@ export class TutorAgent implements Agent {
       }
       
       // Normalize indentation within code blocks
-      code = code.replace(/^\s+/gm, (match) => {
+      code = code.replace(/^\s+/gm, (match: string) => {
         // Convert tabs to spaces and ensure consistent indentation
         return match.replace(/\t/g, '  ');
       });

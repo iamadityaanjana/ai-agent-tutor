@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TutorAgent } from '../../../lib/agents/tutor-agent';
-import { ConversationContext, Message } from '../../../lib/agents/types';
+import { TutorAgent } from '../../lib/agents/tutor-agent';
+import { ConversationContext, Message } from '../../lib/agents/types';
 
 export const maxDuration = 30; // Set max duration to 30 seconds for serverless function
 

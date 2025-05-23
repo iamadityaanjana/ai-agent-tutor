@@ -22,8 +22,8 @@ export class PhysicsAgent implements Agent {
     try {
       // Check if the question is related to a physics formula
       let formulaResult = null;
-      let formulaErrorMessage: string | null = null;
       const toolsUsed = [];
+      let formulaError: Error | null = null;
       
       try {
         const needsFormula = await this.needsFormula(input);
@@ -37,19 +37,12 @@ export class PhysicsAgent implements Agent {
         }
       } catch (error) {
         console.error("Error getting formula information:", error);
-        formulaErrorMessage = error instanceof Error ? error.message : "Error retrieving formula information";
+        formulaError = error instanceof Error ? error : new Error("Unknown error");
         // Continue without formula information if there's an error
       }
       
-      // Generate a detailed physics explanation
-      let prompt = this.buildPhysicsPrompt(input, formulaResult, context);
-      
-      // If there was an error retrieving the formula, add a note about it
-      if (formulaErrorMessage) {
-        prompt += `\nNote: There was an issue retrieving formula information. Please provide the relevant formulas in your explanation.`;
-      }
-      
-      const response = await this.geminiService.generateContent(prompt);
+      // Generate a detailed physics explanation with formula error context if needed
+      const response = await this.generatePhysicsResponse(input, formulaResult, context, formulaError);
       
       return {
         agentId: this.id,
@@ -67,9 +60,43 @@ export class PhysicsAgent implements Agent {
   }
   
   /**
-   * Build the prompt for generating a physics response
+   * Determine if the question needs a physics formula lookup
    */
-  private buildPhysicsPrompt(question: string, formula: any, context?: ConversationContext): string {
+  private async needsFormula(question: string): Promise<boolean> {
+    try {
+      const prompt = `
+        Does the following physics question require a physics formula or law? 
+        Answer with only YES or NO, nothing else.
+        
+        Question: ${question}
+      `;
+      
+      const response = await this.geminiService.generateContent(prompt, "gemini-2.0-flash");
+      const cleanResponse = response.trim().toUpperCase();
+      
+      // Check if the response contains YES
+      if (cleanResponse.includes('YES')) {
+        return true;
+      }
+      
+      // Only return false for clear NO responses, default to true in ambiguous cases
+      return cleanResponse !== 'NO';
+    } catch (error) {
+      console.error("Error determining if formula is needed:", error);
+      // Default to true if there's an error, to err on the side of providing formula information
+      return true;
+    }
+  }
+  
+  /**
+   * Generate a detailed physics explanation, potentially using formula lookup results
+   */
+  private async generatePhysicsResponse(
+    question: string, 
+    formula: any, 
+    context?: ConversationContext, 
+    formulaError?: Error | null
+  ): Promise<string> {
     let prompt = `
       You are a physics tutor specializing in all areas of physics from mechanics to quantum physics.
       Please provide a clear explanation for the following physics question.
@@ -88,7 +115,11 @@ export class PhysicsAgent implements Agent {
       } catch (e) {
         console.warn("Could not stringify formula information:", e);
         // Continue without formula information
+        prompt += "\n\nNote: Unable to process formula information. Please include all relevant formulas in your explanation.";
       }
+    } else if (formulaError) {
+      // If there was an error retrieving the formula, add a note about it
+      prompt += "\n\nNote: There was an issue retrieving formula information. Please ensure you include all relevant physics formulas in your explanation.";
     }
     
     if (context && context.history.length > 0) {
@@ -136,6 +167,6 @@ export class PhysicsAgent implements Agent {
     
     Be educational and helpful, ensuring the physics principles are clearly understood.`;
     
-    return prompt;
+    return await this.geminiService.generateContent(prompt);
   }
 }

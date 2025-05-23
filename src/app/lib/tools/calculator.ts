@@ -55,6 +55,13 @@ export class Calculator {
       
       // Perform calculation
       const result = this.mathParser(formattedExpression);
+      
+      // Verify result is a number and not NaN or Infinity
+      if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+        console.error("Calculator produced invalid result:", result);
+        return null;
+      }
+      
       return result;
     } catch (error) {
       console.error("Error in Calculator:", error);
