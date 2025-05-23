@@ -34,6 +34,19 @@ export class MathAgent implements Agent {
       // Generate a detailed math explanation
       const response = await this.generateMathResponse(input, calculationResult, context);
       
+      // Ensure math expressions are wrapped in LaTeX delimiters in your prompt
+      let prompt = `
+        You are a math tutor helping with a question.
+        Format all mathematical expressions with LaTeX:
+        - Use $...$ for inline math
+        - Use $$...$$  for block/display math
+        - Always use proper LaTeX notation (e.g., \\frac{numerator}{denominator}, \\sqrt{x}, etc.)
+        - Ensure variables are in italics and functions are upright
+        - Present step-by-step solutions with Markdown formatting
+        
+        Question: ${input}
+      `;
+      
       return {
         agentId: this.id,
         content: response,
@@ -60,7 +73,7 @@ export class MathAgent implements Agent {
       Question: ${question}
     `;
     
-    const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
+    const response = await this.geminiService.generateContent(prompt, "gemini-2.0-flash");
     return response.trim().toUpperCase() === 'YES';
   }
   

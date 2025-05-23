@@ -4,7 +4,7 @@ import { ChatContainer } from '../components/chat/chat-container';
 import { Container } from '../components/ui/container';
 import { useState, useEffect } from 'react';
 import { Message, ConversationContext } from '../lib/agents/types';
-import { TutorAgent } from '../lib/agents/tutor-agent';
+import { TutorAgent } from '../lib/agents/tutor-agent'; // Use the agent
 import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 
@@ -34,49 +34,61 @@ export default function ChatPage() {
 
   const handleSendMessage = async (content: string) => {
     if (!tutorAgent) return;
-    
-    // Add user message to chat
+
+    const userMessageId = uuidv4();
     const userMessage: Message = {
-      id: uuidv4(),
+      id: userMessageId,
       content,
       sender: 'user',
       timestamp: new Date(),
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setIsProcessing(true);
-    
+    setError(null); // Clear previous errors
+
+    // Add a loading message from the agent
+    const loadingMessageId = uuidv4();
+    const loadingMessage: Message = {
+      id: loadingMessageId,
+      content: 'Thinking...',
+      sender: 'agent', // Or a specific agent ID if you have it
+      timestamp: new Date(),
+      isLoading: true,
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+
     try {
-      // Create context from conversation history
       const context: ConversationContext = {
-        history: [...messages, userMessage],
+        // Send only the last few messages to save tokens and potentially improve relevance
+        history: messages.slice(-5), 
       };
-      
-      // Process the message with the tutor agent
+
       const response = await tutorAgent.process(content, context);
-      
-      // Add agent's response to chat
+
       const agentMessage: Message = {
         id: uuidv4(),
         content: response.content,
-        sender: response.agentId as any, // Type casting here for simplicity
+        sender: response.agentId as any,
         timestamp: new Date(),
         toolsUsed: response.toolsUsed,
       };
-      
-      setMessages(prev => [...prev, agentMessage]);
-    } catch (err) {
+
+      // Replace loading message with actual response
+      setMessages(prev => prev.map(msg => msg.id === loadingMessageId ? agentMessage : msg));
+
+    } catch (err: any) {
       console.error('Error processing message:', err);
+      const displayError = err.message || 'Sorry, I encountered an error while processing your request. Please try again.';
       
-      // Add error message
       const errorMessage: Message = {
         id: uuidv4(),
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        content: displayError,
         sender: 'system',
         timestamp: new Date(),
       };
-      
-      setMessages(prev => [...prev, errorMessage]);
+      // Remove loading message and add error message
+      setMessages(prev => [...prev.filter(msg => msg.id !== loadingMessageId), errorMessage]);
     } finally {
       setIsProcessing(false);
     }
@@ -84,11 +96,11 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur dark:bg-gray-950/95">
+      <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-950">
         <Container>
           <div className="flex h-14 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-md overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600">
+              <div className="h-8 w-8 rounded-md overflow-hidden bg-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-white p-1">
                   <path d="M19 6v12c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V6" />
                   <path d="M3 6h18" />

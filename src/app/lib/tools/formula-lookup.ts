@@ -147,7 +147,7 @@ export class FormulaLookup {
         Question: ${query}
       `;
       
-      const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
+      const response = await this.geminiService.generateContent(prompt, "gemini-2.0-flash");
       
       if (response.trim() === 'NONE' || !response) {
         return null;

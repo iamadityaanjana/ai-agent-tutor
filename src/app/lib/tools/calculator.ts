@@ -50,8 +50,11 @@ export class Calculator {
       const expression = await this.extractMathExpression(input);
       if (!expression) return null;
       
+      // Replace ^ with ** for exponentiation, supporting variables and numbers
+      const formattedExpression = expression.replace(/([a-zA-Z0-9\)\]])\s*\^\s*([a-zA-Z0-9\(])/g, '($1**$2)');
+      
       // Perform calculation
-      const result = this.mathParser(expression);
+      const result = this.mathParser(formattedExpression);
       return result;
     } catch (error) {
       console.error("Error in Calculator:", error);
@@ -79,7 +82,7 @@ export class Calculator {
         Text: ${text}
       `;
       
-      const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
+      const response = await this.geminiService.generateContent(prompt, "gemini-2.0-flash");
       
       // Return null if no expression found
       if (response.trim() === 'NONE' || !response) {

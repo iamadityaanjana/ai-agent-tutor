@@ -32,7 +32,7 @@ export class GeminiService {
   /**
    * Get a Gemini model with caching to improve performance
    */
-  public getModel(modelName: string = "gemini-1.5-pro"): GenerativeModel {
+  public getModel(modelName: string = "gemini-2.0-flash"): GenerativeModel {
     const cacheKey = `${this.apiKey}-${modelName}`;
     
     if (!modelCache.has(cacheKey)) {
@@ -48,7 +48,7 @@ export class GeminiService {
    */
   public async generateContent(
     prompt: string, 
-    modelName: string = "gemini-1.5-pro"
+    modelName: string = "gemini-2.0-flash"
   ): Promise<string> {
     try {
       const model = this.getModel(modelName);
@@ -65,7 +65,7 @@ export class GeminiService {
    */
   public async generateStructuredOutput<T>(
     prompt: string,
-    modelName: string = "gemini-1.5-pro"
+    modelName: string = "gemini-2.0-flash"
   ): Promise<T> {
     try {
       const model = this.getModel(modelName);
@@ -83,7 +83,7 @@ export class GeminiService {
    */
   public async moderateContent(text: string): Promise<boolean> {
     try {
-      const model = this.getModel("gemini-1.5-flash");
+      const model = this.getModel("gemini-2.0-flash");
       const prompt = `
         Please analyze the following text and determine if it contains any harmful, 
         offensive, illegal, or inappropriate content. Return ONLY "true" if it contains 

@@ -62,7 +62,7 @@ export class PhysicsAgent implements Agent {
       Question: ${question}
     `;
     
-    const response = await this.geminiService.generateContent(prompt, "gemini-1.5-flash");
+    const response = await this.geminiService.generateContent(prompt, "gemini-2.0-flash");
     return response.trim().toUpperCase() === 'YES';
   }
   

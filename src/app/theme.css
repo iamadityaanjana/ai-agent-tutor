@@ -1,0 +1,44 @@
+/* Modern, minimal design without gradients */
+
+/* Base styles for consistent look */
+* {
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Clean button styles - override any gradient styles */
+.btn, button {
+  box-shadow: none !important;
+  background-image: none !important;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+/* Minimal card styles */
+.card {
+  border: 1px solid #2d3748; /* slate-700 */
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+/* Headings - no gradients */
+h1, h2, h3, h4, h5, h6 {
+  background-image: none !important;
+  background-clip: initial !important;
+}
+
+/* Remove hover scaling effects for a more subtle interaction */
+.hover\:scale-105:hover {
+  transform: none !important;
+}
+
+/* Container padding tweaks for better spacing */
+.container {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Smoother transitions */
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}

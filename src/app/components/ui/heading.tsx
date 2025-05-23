@@ -16,15 +16,12 @@ export function Heading({
   subtitle,
   className = '',
   subtitleClassName = '',
-  gradient = false,
+  gradient = false, // keeping prop for backward compatibility
 }: HeadingProps) {
   return (
     <div className={cn('space-y-2 text-center', className)}>
       <h1 
-        className={cn(
-          'text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl',
-          gradient ? 'bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent' : ''
-        )}
+        className={cn('text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl')}
       >
         {title}
       </h1>

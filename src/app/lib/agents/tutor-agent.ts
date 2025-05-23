@@ -34,7 +34,7 @@ export class TutorAgent implements Agent {
         const response = await specialistAgent.process(input, context);
         return {
           agentId: this.id,
-          content: response.content,
+          content: this.formatResponse(response.content),
           toolsUsed: response.toolsUsed,
           confidenceScore: response.confidenceScore
         };
@@ -44,7 +44,7 @@ export class TutorAgent implements Agent {
       const generalResponse = await this.generateGeneralResponse(input, context);
       return {
         agentId: this.id,
-        content: generalResponse,
+        content: this.formatResponse(generalResponse),
         confidenceScore: 0.7
       };
     } catch (error) {
@@ -54,6 +54,74 @@ export class TutorAgent implements Agent {
         content: "I apologize, but I encountered an error while processing your question. Please try again."
       };
     }
+  }
+
+  /**
+   * Format and sanitize the LLM response for proper Markdown rendering
+   */
+  private formatResponse(content: string | undefined): string {
+    if (!content) return "";
+    
+    // Initial cleanup - trim and ensure all line breaks are normalized
+    let formattedContent = content.trim().replace(/\r\n/g, '\n');
+    
+    // Process headings: ensure there's a space after the # characters
+    formattedContent = formattedContent.replace(/(^|\n)(#{1,6})([^\s#])/g, '$1$2 $3');
+    
+    // Process math expressions: ensure proper LaTeX formatting
+    formattedContent = this.processMathExpressions(formattedContent);
+    
+    // Process lists: ensure proper spacing
+    formattedContent = formattedContent.replace(/(^|\n)(\s*[-*+]\s*)([^\s])/g, '$1$2 $3');
+    formattedContent = formattedContent.replace(/(^|\n)(\s*\d+\.\s*)([^\s])/g, '$1$2 $3');
+    
+    // Ensure paragraphs are properly separated
+    formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
+    
+    // Ensure code blocks are properly formatted
+    formattedContent = this.processCodeBlocks(formattedContent);
+    
+    return formattedContent;
+  }
+  
+  /**
+   * Process math expressions to ensure they're properly formatted for LaTeX
+   */
+  private processMathExpressions(content: string): string {
+    let result = content;
+    
+    // Look for obvious math expressions not in LaTeX delimiters
+    const mathRegexes = [
+      // Basic algebra with equals sign
+      /([^$])([\w\d]+\s*[=]\s*[\w\d\+\-\*\/\^]+)([^$])/g,
+      // Expressions with exponents
+      /([^$])([\w\d]+\s*\^\s*[\w\d]+)([^$])/g,
+      // Fractions
+      /([^$])(\d+\s*\/\s*\d+)([^$])/g
+    ];
+    
+    mathRegexes.forEach(regex => {
+      result = result.replace(regex, '$1$$$2$$$3');
+    });
+    
+    // Convert x^y notation to x^{y} format in LaTeX blocks
+    result = result.replace(/\$\$(.*?)\$\$/gs, (match) => {
+      return match.replace(/(\w+)\^(\w+)/g, '$1^{$2}');
+    });
+    
+    result = result.replace(/\$(.*?)\$/g, (match) => {
+      return match.replace(/(\w+)\^(\w+)/g, '$1^{$2}');
+    });
+    
+    return result;
+  }
+  
+  /**
+   * Ensure code blocks are properly formatted
+   */
+  private processCodeBlocks(content: string): string {
+    // Fix code blocks without language specification
+    return content.replace(/```\s*\n/g, '```text\n');
   }
   
   /**
@@ -84,9 +152,15 @@ export class TutorAgent implements Agent {
    */
   private async generateGeneralResponse(question: string, context?: ConversationContext): Promise<string> {
     let prompt = `
-      You are a helpful tutor assistant. Please respond to the following question in a helpful, 
-      educational way. If you don't know the answer, say so honestly.
-      
+      You are a helpful tutor assistant. Please respond to the following question in a helpful, educational way.
+      Use proper Markdown formatting: 
+      - Use headings (##) for sections
+      - Use bullet or numbered lists for steps
+      - Use bold/italic for emphasis
+      - For mathematical formulas, use LaTeX inside $$...$$ for block math or $...$ for inline math.
+      - Use code blocks only for code, not for math.
+      If you don't know the answer, say so honestly.
+
       Question: ${question}
     `;
     

@@ -1,6 +1,7 @@
 "use client";
 
 import { ButtonHTMLAttributes, forwardRef } from 'react';
+import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from 'class-variance-authority';
 import { cn } from '../../lib/utils/cn';
 
@@ -15,7 +16,7 @@ export const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "underline-offset-4 hover:underline text-primary",
-        gradient: "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700",
+        primary: "bg-blue-600 text-white hover:bg-blue-700",
       },
       size: {
         default: "h-10 py-2 px-4",
@@ -34,13 +35,15 @@ export const buttonVariants = cva(
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
+  asChild?: boolean; // Added asChild prop
   className?: string;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, ...props }, ref) => { // Added asChild to destructuring and gave it a default value
+    const Comp = asChild ? Slot : "button"; // Use Slot if asChild is true
     return (
-      <button
+      <Comp // Changed from button to Comp
         ref={ref}
         className={cn(buttonVariants({ variant, size, className }))}
         {...props}

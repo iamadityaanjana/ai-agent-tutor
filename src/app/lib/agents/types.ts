@@ -37,7 +37,8 @@ export type MessageSender = 'user' | 'system' | 'tutor' | 'math' | 'physics' | '
 export interface Message {
   id: string;
   content: string;
-  sender: MessageSender;
+  sender: 'user' | 'agent' | 'system' | string; // Allow for specific agent IDs
   timestamp: Date;
   toolsUsed?: string[];
+  isLoading?: boolean; // Added for loading state
 }

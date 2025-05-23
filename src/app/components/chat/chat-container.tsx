@@ -31,7 +31,7 @@ export function ChatContainer({
       <div className="flex-1 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center">
-            <div className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 p-8 mb-4">
+            <div className="rounded-full bg-blue-600 p-8 mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
