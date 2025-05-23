@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
+import { ToolsDisplay } from './tools-display';
 
 interface ChatMessageProps {
   message: Message;
@@ -83,7 +84,7 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
     )}>
       {!isUser && avatar}
       <div className={cn(
-        'rounded-2xl px-4 py-2 max-w-[80%]',
+        'rounded-2xl px-4 py-2 max-w-[80%] overflow-hidden',
         bgColor,
         textColor
       )}>
@@ -92,7 +93,7 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
             {message.sender.charAt(0).toUpperCase() + message.sender.slice(1)} Agent
           </div>
         )}
-        <div className="message-content prose dark:prose-invert max-w-none">
+        <div className="message-content prose dark:prose-invert max-w-none overflow-hidden break-words">
           {message.isLoading ? (
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-current rounded-full animate-bounce"></div>
@@ -113,26 +114,27 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
                 li: (props) => <li className="mb-1" {...props} />,
                 a: (props) => <a className="text-blue-600 hover:underline break-words" target="_blank" rel="noopener noreferrer" {...props} />,
                 blockquote: (props) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2" {...props} />,
-                table: (props) => <div className="overflow-x-auto mb-3"><table className="border-collapse border border-gray-300 w-full" {...props} /></div>,
+                table: (props) => <div className="overflow-x-auto mb-3 w-full max-w-full"><table className="border-collapse border border-gray-300 w-auto" {...props} /></div>,
                 thead: (props) => <thead className="bg-gray-100 dark:bg-gray-800" {...props} />,
                 th: (props) => <th className="border border-gray-300 px-4 py-2 text-left" {...props} />,
                 td: (props) => <td className="border border-gray-300 px-4 py-2" {...props} />,
                 pre: (props) => <pre className="bg-gray-900 text-gray-100 rounded-md p-4 overflow-x-auto mb-3" {...props} />,
-                code: ({inline, className, children, ...props}) => {
+                code: ({className, children, ...props}: any) => {
                   const match = /language-(\w+)/.exec(className || "");
-                  return !inline ? (
-                    <div className="bg-gray-900 rounded-md p-0 overflow-hidden mb-3">
+                  const isInline = !match || !className?.includes('language-');
+                  return !isInline ? (
+                    <div className="bg-gray-900 rounded-md p-0 overflow-hidden mb-3 max-w-full">
                       <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">
                         {match && match[1] ? match[1] : "code"}
                       </div>
-                      <pre className="p-4 overflow-x-auto">
+                      <pre className="p-4 overflow-x-auto max-w-full">
                         <code className={className} {...props}>
                           {children}
                         </code>
                       </pre>
                     </div>
                   ) : (
-                    <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                    <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono break-words" {...props}>
                       {children}
                     </code>
                   );
@@ -145,16 +147,7 @@ export function ChatMessage({ message, isLast }: ChatMessageProps) {
         </div>
         
         {message.toolsUsed && message.toolsUsed.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {message.toolsUsed.map((tool) => (
-              <span 
-                key={tool}
-                className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20"
-              >
-                {tool}
-              </span>
-            ))}
-          </div>
+          <ToolsDisplay tools={message.toolsUsed} />
         )}
       </div>
       {isUser && avatar}

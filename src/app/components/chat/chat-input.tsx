@@ -26,7 +26,7 @@ export function ChatInput({ onSubmit, isLoading, disabled = false }: ChatInputPr
   return (
     <form 
       onSubmit={handleSubmit}
-      className="sticky bottom-0 z-10 bg-white dark:bg-slate-900 border-t dark:border-slate-700 p-4"
+      className="sticky bottom-0 z-10 bg-white dark:bg-slate-900 border-t dark:border-slate-700 p-4 w-full"
     >
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
